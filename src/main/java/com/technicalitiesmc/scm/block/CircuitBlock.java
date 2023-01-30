@@ -33,10 +33,14 @@ import com.technicalitiesmc.scm.network.ComponentBreakPacket;
 import com.technicalitiesmc.scm.network.ComponentSyncPacket;
 import com.technicalitiesmc.scm.network.ComponentUsePacket;
 import com.technicalitiesmc.scm.network.SCMNetworkHandler;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
@@ -74,13 +78,15 @@ import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.technicalitiesmc.scm.circuit.CircuitHelper.SIZE;
-import static com.technicalitiesmc.scm.circuit.CircuitHelper.SIZE_MINUS_ONE;
+import static com.technicalitiesmc.scm.circuit.CircuitHelper.*;
 
 public class CircuitBlock extends TKBlock.WithEntity implements Multipart, CustomBlockHighlight {
 
@@ -206,6 +212,145 @@ public class CircuitBlock extends TKBlock.WithEntity implements Multipart, Custo
         }
         return new ItemStack(this);
     }
+
+    public boolean outputBlueprint(BlockState state, BlockGetter level, BlockPos pos, String blueprintName, String blueprintIntroduction, String blueprintAuthor){
+        var data = this.data.at(level,pos,state);
+        if(data != null){
+            var accessor = data.getOrCreateAccessor();
+            ArrayList<ComponentState> componentCache = new ArrayList<ComponentState>();
+
+            //装填组件位置的list
+            ArrayList<byte[]> sizeCache = new ArrayList<byte[]>();
+
+            //遍历每一个位置的元件
+            if(accessor instanceof ClientTile ct){
+                for(int x_asix = -1; x_asix< SIZE; x_asix++){
+                    for(int y_asix = -1;y_asix<HEIGHT;y_asix++){
+                        for(int z_asix = -1;z_asix<SIZE;z_asix++){
+                            for(ComponentSlot cs:ComponentSlot.VALUES){
+                                try {
+                                    var component = ct.getState(new Vec3i(x_asix, y_asix, z_asix), cs);
+                                    if(component != null){
+                                        //放位置
+                                        sizeCache.add(new byte[]{(byte) x_asix,(byte) y_asix,(byte) z_asix});
+
+                                        //放数据(统一都是64byte的)
+                                        componentCache.add(component);
+                                    }
+                                }catch (Exception e){}
+                            }
+                        }
+                    }
+                }
+            }
+
+            //输出
+            try{
+                //输出的文件
+                File output = new File(FOLDER_NAME+"\\"+blueprintName+".blueprint");
+                FileOutputStream os = new FileOutputStream(output);
+
+
+                //对各字符串这个进行UTF_8编码
+                byte[] fileHead = FILE_HEADER.getBytes(StandardCharsets.UTF_8);//文件头
+                byte[] fileVersion = FILE_VERSION.getBytes(StandardCharsets.UTF_8);//文件版本
+                byte[] name = blueprintName.getBytes(StandardCharsets.UTF_8);//蓝图名
+                byte[] introduction = blueprintIntroduction.getBytes(StandardCharsets.UTF_8);//蓝图介绍
+                byte[] author = blueprintAuthor.getBytes(StandardCharsets.UTF_8);//蓝图作者
+
+
+                //文件头
+                os.write(fileHead);
+                os.flush();
+
+                //文件版本
+                os.write(twoBytesFormatting(fileVersion.length));
+                os.write(fileVersion);
+                os.flush();
+
+                //蓝图名字
+                os.write(twoBytesFormatting(name.length));
+                os.write(name);
+                os.flush();
+
+                //蓝图介绍
+                os.write(twoBytesFormatting(introduction.length));
+                os.write(introduction);
+                os.flush();
+
+                //蓝图作者
+                os.write(twoBytesFormatting(author.length));
+                os.write(author);
+                os.flush();
+
+                //存储元件位置的列表
+                byte[] poss = new byte[sizeCache.size()*3];
+                os.write(twoBytesFormatting(poss.length));
+
+                //4 bytes of posData_length , posData_length bytes of posData , 64*posData_length/3 bytes of componentData
+                //4 byte 用来放位置数据列表的长度(posData_length) , posData_length byte 长度的数据用来放位置数据 , 64*posData_length/3 byte 长度的数据用来放元件数据
+                int counter = 0;
+                for(byte[] bytes : sizeCache){
+                    for(byte Byte : bytes){
+                        //把位置存进这个数组
+                        poss[counter] = Byte;
+                        counter++;
+                    }
+                }
+                os.write(poss);
+                os.flush();
+
+                //写入元件位置
+                //创建一个FriendlyByteBuf
+                ByteBuf bf = Unpooled.buffer(64);
+                FriendlyByteBuf buffer = new FriendlyByteBuf(bf);
+                //装填每一个元件的参数
+                for(ComponentState cs:componentCache){
+                    cs.serialize(buffer);
+                    os.write(buffer.array());
+                    os.flush();
+                    buffer.clear();
+                }
+
+                //FileInputStream fis = new FileInputStream("SCM_blueprints\\name.blueprint");
+                //FileInputStream fis2 = new FileInputStream("SCM_blueprints\\nameaaaa.blueprint");
+                //byte[] result = fis.readAllBytes();
+                //byte[] result2 = fis2.readAllBytes();
+                //经过测试可以知道新生成得不同名字文件之间没有任何区别
+
+
+                //String result = new String(name,StandardCharsets.UTF_8);
+                //使用这种方式来获取字符串
+                //oos.writeObject(blueprint);
+                //oos.flush();
+                //oos.close();
+                //打印"保存成功"字样
+                //minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save"), true);
+
+            }catch (Exception e){
+                //minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save_failed"), true);
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+
+    public byte[] twoBytesFormatting(int data){
+        if(data>65535 || data<0) return null;
+        return new byte[]{(byte)(data%256),(byte)(data-256*(data%256))};
+    }
+    /*
+    public ComponentSlotPos getHitPos(BlockState state, BlockGetter level, BlockPos pos, Player player){
+        var shape = getShape(state, level, pos, CollisionContext.of(player));
+        var start = player.getEyePosition(0);
+        var end = player.getViewVector(0).multiply(10, 10, 10); // If we're here, we can definitely reach it
+        var hit = shape.clip(start, start.add(end), pos);
+        if(hit != null){
+            return resolveHit(hit);
+        }
+        return null;
+    }
+     */
 
     private VoxelShape getBaseShape(BlockState state) {
         return BOUNDS[state.getValue(DIRECTION).ordinal()];

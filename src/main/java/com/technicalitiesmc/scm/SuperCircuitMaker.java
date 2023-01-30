@@ -48,6 +48,8 @@ public class SuperCircuitMaker {
         MinecraftForge.EVENT_BUS.addListener(CircuitCache::tick);
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC, MODID + ".toml");
+
+        SCMBlueprints.checkFolder();
     }
 
     private void setup(final FMLCommonSetupEvent event) {

@@ -45,6 +45,21 @@ public class SCMClientEventHandler {
 
         InteractionResult result;
         if (event.isUseItem()) {
+            //判断玩家手中的物品是不是蓝图
+            if(minecraft.player.getMainHandItem().is(SCMItems.BLUEPRINT.get())){
+
+                //文件夹存在与否的监测
+
+                //要保存的方块
+                CircuitBlock BlueprintBlock = (CircuitBlock) state.getBlock();
+                BlueprintBlock.outputBlueprint(state,minecraft.player.level,hit.getBlockPos(),"name","introduction",minecraft.player.getModelName());
+
+
+                //var pos = BlueprintBlock.getHitPos(state,minecraft.player.level,hit.getBlockPos(),minecraft.player);
+                //if(pos != null) System.out.println("place:"+pos.toAbsolute().pos().getX()+","+(pos.toAbsolute().pos().getY()-1)+","+pos.toAbsolute().pos().getZ());
+
+                //System.out.println(ci.getType().toString());
+            }
             if (partial) {
                 result = InteractionResult.CONSUME_PARTIAL;
             } else {

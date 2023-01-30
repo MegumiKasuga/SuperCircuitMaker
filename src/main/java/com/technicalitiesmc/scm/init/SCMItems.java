@@ -5,9 +5,7 @@ import com.technicalitiesmc.scm.SuperCircuitMaker;
 import com.technicalitiesmc.scm.component.wire.BundledWireComponent;
 import com.technicalitiesmc.scm.component.wire.ColoredWireComponent;
 import com.technicalitiesmc.lib.circuit.interfaces.wire.WireConnectionState;
-import com.technicalitiesmc.scm.item.PaletteItem;
-import com.technicalitiesmc.scm.item.ScrewdriverItem;
-import com.technicalitiesmc.scm.item.SimpleComponentItem;
+import com.technicalitiesmc.scm.item.*;
 import com.technicalitiesmc.scm.placement.NoTopLayerSimplePlacement;
 import com.technicalitiesmc.scm.placement.SimplePlacement;
 import com.technicalitiesmc.scm.placement.WirePlacement;
@@ -122,6 +120,10 @@ public final class SCMItems {
     });
 
     public static final RegistryObject<Item> SCREWDRIVER = register("screwdriver", ScrewdriverItem::new);
+
+    public static final RegistryObject<Item> BLUEPRINT = register("blueprint", BlueprintItem::new);
+
+    public static final RegistryObject<Item> FILLEDBLUEPRINT = register("filled_blueprint", FilledBlueprintItem::new);
     public static final RegistryObject<Item> PALETTE = register("palette", PaletteItem::new);
 
     // Helpers

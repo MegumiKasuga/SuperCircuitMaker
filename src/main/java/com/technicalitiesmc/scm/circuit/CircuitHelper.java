@@ -2,6 +2,7 @@ package com.technicalitiesmc.scm.circuit;
 
 import com.technicalitiesmc.lib.circuit.component.ComponentSlot;
 import com.technicalitiesmc.lib.math.IndexedShape;
+import com.technicalitiesmc.scm.SuperCircuitMaker;
 import com.technicalitiesmc.scm.circuit.util.ComponentPos;
 import com.technicalitiesmc.scm.circuit.util.ComponentSlotPos;
 import net.minecraft.world.phys.AABB;
@@ -15,6 +16,12 @@ public class CircuitHelper {
     public static final int HEIGHT = 4;
     public static final int SLOTS = ComponentSlot.VALUES.length;
     public static final int TOTAL_POSITIONS = SIZE * SIZE * HEIGHT * SLOTS;
+
+    public static final String FILE_HEADER = "MINECRAFT_MOD_SCM_BLUEPRINT_FILE_@"+ SuperCircuitMaker.MODID;
+
+    public static final String FILE_VERSION = "0.2.9";
+
+    public static final String FOLDER_NAME = "SCM_blueprints";
 
     public static ComponentSlotPos resolvePositionFromShapeIndex(int index) {
         var slot = Math.floorMod(index, SLOTS);
