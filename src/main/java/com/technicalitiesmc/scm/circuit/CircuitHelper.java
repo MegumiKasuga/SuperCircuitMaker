@@ -13,7 +13,7 @@ public class CircuitHelper {
     public static final int SIZE = 8;
     public static final int SIZE_MINUS_ONE = SIZE - 1;
     public static final int SIZE_PLUS_ONE = SIZE + 1;
-    public static final int HEIGHT = 4;
+    public static final int HEIGHT = 8;
     public static final int SLOTS = ComponentSlot.VALUES.length;
     public static final int TOTAL_POSITIONS = SIZE * SIZE * HEIGHT * SLOTS;
 

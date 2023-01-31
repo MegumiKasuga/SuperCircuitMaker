@@ -1,5 +1,6 @@
 package com.technicalitiesmc.scm.client;
 
+import com.mojang.math.Vector3f;
 import com.technicalitiesmc.lib.circuit.component.ComponentSlot;
 import com.technicalitiesmc.lib.circuit.component.ComponentState;
 import com.technicalitiesmc.lib.util.Utils;
@@ -8,6 +9,7 @@ import com.technicalitiesmc.scm.block.CircuitBlock;
 import com.technicalitiesmc.scm.circuit.util.BlueprintDataPacket;
 import com.technicalitiesmc.scm.circuit.util.ComponentPos;
 import com.technicalitiesmc.scm.circuit.util.ComponentSlotPos;
+import com.technicalitiesmc.scm.circuit.util.ParticleDirector;
 import com.technicalitiesmc.scm.client.screen.PaletteScreen;
 import com.technicalitiesmc.scm.init.SCMItems;
 import com.technicalitiesmc.scm.item.PaletteItem;
@@ -18,6 +20,8 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.TranslatableComponent;
@@ -111,6 +115,9 @@ public class SCMClientEventHandler {
         return pos.getZ() == secondPos.getZ();
     }
 
+    static ParticleDirector pdFirst = null;
+    static ParticleDirector pdSecond = null;
+
 
     @SubscribeEvent
     public static void onClickInput(InputEvent.ClickInputEvent event) {
@@ -128,6 +135,9 @@ public class SCMClientEventHandler {
             return;
         }
 
+        if(pdFirst == null) pdFirst = new ParticleDirector(minecraft);
+        if(pdSecond == null) pdSecond = new ParticleDirector(minecraft);
+
         InteractionResult result;
         if (event.isUseItem()) {
             //判断玩家手中的物品是不是蓝图
@@ -138,11 +148,16 @@ public class SCMClientEventHandler {
                     minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.cancelled"), true);
                     firstPos = null;
                     firstHitPos = null;
+                    if(pdFirst != null) pdFirst.stop();
+                    if(pdSecond != null) pdSecond.stop();
+                    pdFirst = null;
+                    pdSecond = null;
                     error();
                     step = 0;
                     return;
                 }
 
+                //step == 5 执行保存过程
                 if (step == 5 && firstPos != null && secondPos != null && firstHitPos != null && secondHitPos != null) {
                     int cache = 0;
 
@@ -252,6 +267,11 @@ public class SCMClientEventHandler {
                             error();
                             step = 0;
 
+                            pdFirst.stop();
+                            pdSecond.stop();
+                            pdFirst = null;
+                            pdSecond = null;
+
                             System.gc();
                             return;
 
@@ -263,6 +283,11 @@ public class SCMClientEventHandler {
                         firstHitPos = null;
                         error();
                         step = 0;
+
+                        pdFirst.stop();
+                        pdSecond.stop();
+                        pdFirst = null;
+                        pdSecond = null;
 
                         System.gc();
 
@@ -284,6 +309,11 @@ public class SCMClientEventHandler {
                         if (step == 1 && posCache != null && hitPosCache != null) {
                             firstPos = posCache;
                             firstHitPos = hitPosCache;
+
+                            //用粒子效果标注位置
+                            pdFirst.loadLocation(firstPos,firstHitPos);
+                            pdFirst.on();
+
                             minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.pos1"), true);
                             step++;
                             return;
@@ -311,27 +341,24 @@ public class SCMClientEventHandler {
                                 return;
                             }
                             //成功选取
+                            pdSecond.loadLocation(secondPos,secondHitPos);
+                            pdSecond.on();
+
                             minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.pos2"), true);
                             step++;
                             return;
                         }
-                        //文件夹存在与否的监测
-                        //state.getBlock();
-                        //BlockHitResult bhr = new BlockHitResult();
-
-                        //要保存的方块
-                        //CircuitBlock BlueprintBlock = (CircuitBlock) state.getBlock();
-                        //BlueprintBlock.outputBlueprint(state, minecraft.player.level, hit.getBlockPos(), "name", "introduction", minecraft.player.getModelName());
-
-                        //var pos = BlueprintBlock.getHitPos(state,minecraft.player.level,hit.getBlockPos(),minecraft.player);
-                        //if(pos != null) System.out.println("place:"+pos.toAbsolute().pos().getX()+","+(pos.toAbsolute().pos().getY()-1)+","+pos.toAbsolute().pos().getZ());
-
-                        //System.out.println(ci.getType().toString());
                     }
                 }
             }
 
+            //step自动归零
             if(step != 0) step = 0;
+
+            if(pdFirst != null)pdFirst.stop();
+            if(pdSecond != null)pdSecond.stop();
+            pdFirst = null;
+            pdSecond = null;
 
             if (partial) {
                 result = InteractionResult.CONSUME_PARTIAL;
