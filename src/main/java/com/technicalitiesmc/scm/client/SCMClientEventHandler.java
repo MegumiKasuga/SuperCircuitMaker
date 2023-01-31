@@ -1,44 +1,46 @@
 package com.technicalitiesmc.scm.client;
 
+import com.technicalitiesmc.lib.circuit.component.ComponentSlot;
+import com.technicalitiesmc.lib.circuit.component.ComponentState;
 import com.technicalitiesmc.lib.util.Utils;
 import com.technicalitiesmc.scm.SuperCircuitMaker;
 import com.technicalitiesmc.scm.block.CircuitBlock;
+import com.technicalitiesmc.scm.circuit.util.BlueprintDataPacket;
+import com.technicalitiesmc.scm.circuit.util.ComponentPos;
 import com.technicalitiesmc.scm.circuit.util.ComponentSlotPos;
 import com.technicalitiesmc.scm.client.screen.PaletteScreen;
 import com.technicalitiesmc.scm.init.SCMItems;
 import com.technicalitiesmc.scm.item.PaletteItem;
 import com.technicalitiesmc.scm.placement.ComponentPlacementHandler;
-import net.minecraft.BlockUtil;
-import net.minecraft.advancements.critereon.BlockPredicate;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.BlockSource;
 import net.minecraft.core.Vec3i;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.level.BlockAndTintGetter;
-import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.DrawSelectionEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.common.extensions.IForgeBlockGetter;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import javax.swing.text.html.parser.Entity;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
+import static com.technicalitiesmc.scm.circuit.CircuitHelper.FOLDER_NAME;
 import static com.technicalitiesmc.scm.circuit.CircuitHelper.MAX_BLUEPRINT_SIZE;
-import static com.technicalitiesmc.scm.circuit.CircuitHelper.getPositionFromIndex;
 
 @Mod.EventBusSubscriber(modid = SuperCircuitMaker.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class SCMClientEventHandler {
@@ -62,12 +64,61 @@ public class SCMClientEventHandler {
         try{return Minecraft.getInstance().level.getBlockEntity(blockPos).getBlockState().getBlock();}catch (Exception e){return null;}
     }
 
+    public static BlockState getBlockStateByPos(BlockPos blockPos){
+        try{return Minecraft.getInstance().level.getBlockEntity(blockPos).getBlockState();}catch (Exception e){return null;}
+    }
+
+    public static void flipHitPos(String axis){
+        int cache;
+        switch (axis){
+            case "x":
+                cache = firstHitPos.pos().x();
+                firstHitPos = new ComponentSlotPos(new ComponentPos(secondHitPos.pos().x(), firstHitPos.pos().y(), firstHitPos.pos().z()), firstHitPos.slot());
+                secondHitPos = new ComponentSlotPos(new ComponentPos(cache,secondHitPos.pos().y(),secondHitPos.pos().z()),secondHitPos.slot());
+                return;
+            case "y":
+                cache = firstHitPos.pos().y();
+                firstHitPos = new ComponentSlotPos(new ComponentPos(firstHitPos.pos().x(), secondHitPos.pos().y(), firstHitPos.pos().z()), firstHitPos.slot());
+                secondHitPos = new ComponentSlotPos(new ComponentPos(secondHitPos.pos().x(),cache,secondHitPos.pos().z()),secondHitPos.slot());
+                return;
+            case "z":
+                cache = firstHitPos.pos().z();
+                firstHitPos = new ComponentSlotPos(new ComponentPos(firstHitPos.pos().x(),firstHitPos.pos().y(),secondHitPos.pos().z()),firstHitPos.slot());
+                secondHitPos = new ComponentSlotPos(new ComponentPos(secondHitPos.pos().x(),secondHitPos.pos().y(),cache),secondHitPos.slot());
+                return;
+            default:
+                return;
+        }
+    }
+
+    public static boolean sameBlock(){
+        try{return ((Vec3i) firstPos).getX() == ((Vec3i) secondPos).getX() && ((Vec3i) firstPos).getZ() == ((Vec3i) secondPos).getZ();}catch (Exception e){return false;}
+    }
+
+    public static boolean isXBottomEdge(BlockPos pos){
+        return pos.getX() == firstPos.getX();
+    }
+
+    public static boolean isZBottomEdge(BlockPos pos){
+        return pos.getZ() == firstPos.getZ();
+    }
+
+    public static boolean isXTopEdge(BlockPos pos){
+        return pos.getX() == secondPos.getX();
+    }
+
+    public static boolean isZTopEdge(BlockPos pos){
+        return pos.getZ() == secondPos.getZ();
+    }
+
+
     @SubscribeEvent
     public static void onClickInput(InputEvent.ClickInputEvent event) {
         if (busyTimer > 0) {
             event.setCanceled(true);
             return;
         }
+
         var minecraft = Minecraft.getInstance();
         if (!(minecraft.hitResult instanceof BlockHitResult hit)) {
             return;
@@ -87,8 +138,7 @@ public class SCMClientEventHandler {
                     minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.cancelled"), true);
                     firstPos = null;
                     firstHitPos = null;
-                    secondPos = null;
-                    secondHitPos = null;
+                    error();
                     step = 0;
                     return;
                 }
@@ -96,26 +146,128 @@ public class SCMClientEventHandler {
                 if (step == 5 && firstPos != null && secondPos != null && firstHitPos != null && secondHitPos != null) {
                     int cache = 0;
 
-                    //以下操作让firstPos的x和z轴坐标都小于secondPos的对应数值
-                    if(((Vec3i) firstPos).getX() > ((Vec3i) secondPos).getX()){
+                    //以下操作让firstPos的x和z轴坐标都小于secondPos的对应数值，并使得componentSlotPos与blockPos相对应
+                    if(((Vec3i) firstPos).getX() > ((Vec3i) secondPos).getX()) {
                         cache = ((Vec3i) firstPos).getX();
-                        firstPos = new BlockPos(new Vec3i(((Vec3i) secondPos).getX(),((Vec3i) firstPos).getY(),((Vec3i) firstPos).getZ()));
-                        secondPos = new BlockPos(cache,((Vec3i) secondPos).getY(),((Vec3i) secondPos).getZ());
+                        firstPos = new BlockPos(new Vec3i(((Vec3i) secondPos).getX(), ((Vec3i) firstPos).getY(), ((Vec3i) firstPos).getZ()));
+                        secondPos = new BlockPos(cache, ((Vec3i) secondPos).getY(), ((Vec3i) secondPos).getZ());
+
+                        flipHitPos("x");
                     }
                     if(((Vec3i) firstPos).getZ() > ((Vec3i) secondPos).getZ()){
                         cache = ((Vec3i) firstPos).getZ();
                         firstPos = new BlockPos(new Vec3i(((Vec3i) firstPos).getX(),((Vec3i) firstPos).getY(),((Vec3i) secondPos).getZ()));
                         secondPos = new BlockPos(new Vec3i(((Vec3i) secondPos).getX(),((Vec3i) secondPos).getY(),cache));
+
+                        flipHitPos("z");
                     }
-                    try{
-                        //Block scanner = getBlockByPos();
 
-                    }catch (Exception e){e.printStackTrace();}
+                    //处理y轴
+                    if(firstHitPos.pos().y()>secondHitPos.pos().y()){
+                        flipHitPos("y");
+                    }
 
-                    firstPos = null;
-                    firstHitPos = null;
-                    error();
-                    step = 0;
+                    //方块相同时处理两个hitPos点
+                    if(sameBlock()){
+                        if(firstHitPos.pos().x()>secondHitPos.pos().x()) flipHitPos("x");
+                        if(firstHitPos.pos().z()>secondHitPos.pos().z()) flipHitPos("z");
+                    }
+
+                    //处理完成后，我们可以保证坐标较小的方块数据在前，坐标较大的方块数据在后
+
+                    BlockPos blockPos = null;
+                    Block scannerBlock = null;
+                    CircuitBlock cb = null;
+                    CircuitBlock.Data data = null;
+                    BlueprintDataPacket bdp = null;
+                    ArrayList<BlueprintDataPacket> datas = new ArrayList<BlueprintDataPacket>();
+                    HashMap<String,Integer> itemTab = new HashMap<>();
+                    ArrayList<byte[]> posTab = new ArrayList<>();
+
+                    //对这个范围内的block进行遍历
+                    for(int x_axis = firstPos.getX(); x_axis <=secondPos.getX(); x_axis++){
+                        for(int z_axis = firstPos.getZ(); z_axis <=secondPos.getZ(); z_axis++){
+                            blockPos = new BlockPos(new Vec3i(x_axis,firstPos.getY(),z_axis));
+                            scannerBlock = getBlockByPos(blockPos);
+                            if(scannerBlock != null && scannerBlock instanceof CircuitBlock){
+                                //componentSlot的xz朝向和world的xz朝向是一样的
+                                cb = (CircuitBlock) scannerBlock;
+                                data = cb.getData(minecraft.player.level,blockPos);
+                                if(data != null){
+                                    //获得每个方块的元件数据
+                                    bdp = cb.getBlueprintData(data,new ComponentSlotPos(isXBottomEdge(blockPos) ? firstHitPos.pos().x() : 0,firstHitPos.pos().y(),isZBottomEdge(blockPos) ? firstHitPos.pos().z() : 0,ComponentSlot.DEFAULT),new ComponentSlotPos(isXTopEdge(blockPos) ? secondHitPos.pos().x() : 7,secondHitPos.pos().y(),isZTopEdge(blockPos) ? secondHitPos.pos().z() : 7,ComponentSlot.DEFAULT));
+                                    if(bdp != null) System.out.println(bdp.isEmpty());
+                                    if(bdp != null && !bdp.isEmpty()){
+                                        //将这整张网格进行平移，使得整张网格成为以(0,0)开始
+                                        bdp.offset((x_axis-firstPos.getX())*8-firstHitPos.pos().x(),(z_axis-firstPos.getZ())*8-firstHitPos.pos().z());
+                                        //存储
+                                        datas.add(bdp);
+                                        itemTab = BlueprintDataPacket.itemMapMerge(bdp.getItems(),itemTab);
+                                        posTab = BlueprintDataPacket.posListMerge(posTab,bdp.getPosList());
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if(!itemTab.isEmpty() && !posTab.isEmpty()){
+
+                        String name = "testBlueprint";
+                        String introduction = "testIntroduction";
+                        String author = "Carole";
+
+                        byte[] itemBytes = BlueprintDataPacket.getItemsSerialize(itemTab);//物品清单
+                        byte[] posBytes = BlueprintDataPacket.getPosSerialize(posTab);//位置
+                        try{
+                            //生成文件和输出流
+                            File output = new File(FOLDER_NAME+"\\"+name+".blueprint");
+                            FileOutputStream os = new FileOutputStream(output);
+                            BufferedOutputStream bos = new BufferedOutputStream(os);
+
+                            //输出字节
+                            BlueprintDataPacket.writeFileHead(bos,name,introduction,author);//文件头
+                            bos.write(itemBytes);//物品
+                            bos.write(posBytes);//位置
+
+                            //创建一个FriendlyByteBuf
+                            ByteBuf bf = Unpooled.buffer(64);
+                            FriendlyByteBuf buffer = new FriendlyByteBuf(bf);
+
+                            //写入元件数据(每个64字节)
+                            for(BlueprintDataPacket bdp2:datas){
+                                for(ComponentState cs:bdp2.getComponentList()){
+                                    cs.serialize(buffer);
+                                    bos.write(buffer.accessByteBufWithCorrectSize());
+                                    buffer.clear();
+                                }
+                            }
+
+                            bos.flush();
+                            bos.close();
+
+                            minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save"), true);
+
+                            firstPos = null;
+                            firstHitPos = null;
+                            error();
+                            step = 0;
+
+                            System.gc();
+                            return;
+
+                        }catch (FileNotFoundException e){e.printStackTrace();} catch (IOException e){e.printStackTrace();}
+
+                        minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save_failed"), true);
+
+                        firstPos = null;
+                        firstHitPos = null;
+                        error();
+                        step = 0;
+
+                        System.gc();
+
+                        return;
+                    }
                 }
 
                 //玩家点击到的方块必须是电路板方块
@@ -153,7 +305,7 @@ public class SCMClientEventHandler {
                                 return;
                             }
                             //第一第二顶点坐标重合的情况
-                            if (secondHitPos.toAbsolute().pos().getX() == firstHitPos.toAbsolute().pos().getX() && secondHitPos.toAbsolute().pos().getY() == firstHitPos.toAbsolute().pos().getY() && secondHitPos.toAbsolute().pos().getZ() == firstHitPos.toAbsolute().pos().getZ() && ((Vec3i) firstPos).getX() == ((Vec3i) secondPos).getX() && ((Vec3i) firstPos).getZ() == ((Vec3i) secondPos).getZ()) {
+                            if (secondHitPos.toAbsolute().pos().getX() == firstHitPos.toAbsolute().pos().getX() && secondHitPos.toAbsolute().pos().getY() == firstHitPos.toAbsolute().pos().getY() && secondHitPos.toAbsolute().pos().getZ() == firstHitPos.toAbsolute().pos().getZ() && sameBlock()) {
                                 minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.coincide"), true);
                                 error();
                                 return;

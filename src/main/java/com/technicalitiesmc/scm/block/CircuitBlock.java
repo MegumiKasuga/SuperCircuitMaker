@@ -21,6 +21,7 @@ import com.technicalitiesmc.scm.circuit.TilePointer;
 import com.technicalitiesmc.scm.circuit.client.ClientTile;
 import com.technicalitiesmc.scm.circuit.server.CircuitCache;
 import com.technicalitiesmc.scm.circuit.server.ServerTileAccessor;
+import com.technicalitiesmc.scm.circuit.util.BlueprintDataPacket;
 import com.technicalitiesmc.scm.circuit.util.ComponentPos;
 import com.technicalitiesmc.scm.circuit.util.ComponentSlotPos;
 import com.technicalitiesmc.scm.circuit.util.TilePos;
@@ -75,6 +76,7 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.common.util.LazyOptional;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -87,6 +89,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.technicalitiesmc.scm.circuit.CircuitHelper.*;
+import static com.technicalitiesmc.scm.client.SCMClientEventHandler.flipHitPos;
+import static com.technicalitiesmc.scm.client.SCMClientEventHandler.getBlockStateByPos;
 
 public class CircuitBlock extends TKBlock.WithEntity implements Multipart, CustomBlockHighlight {
 
@@ -213,127 +217,53 @@ public class CircuitBlock extends TKBlock.WithEntity implements Multipart, Custo
         return new ItemStack(this);
     }
 
-    public boolean outputBlueprint(BlockState state, BlockGetter level, BlockPos pos, String blueprintName, String blueprintIntroduction, String blueprintAuthor){
-        var data = this.data.at(level,pos,state);
-        if(data != null){
+    @NotNull
+    public BlueprintDataPacket getBlueprintData(CircuitBlock.Data data,ComponentSlotPos beginPos,ComponentSlotPos endPos){
+        if(data != null && beginPos != null && endPos != null){
             var accessor = data.getOrCreateAccessor();
-            ArrayList<ComponentState> componentCache = new ArrayList<ComponentState>();
+            BlueprintDataPacket result = new BlueprintDataPacket();
 
-            //装填组件位置的list
-            ArrayList<byte[]> sizeCache = new ArrayList<byte[]>();
-
-            //遍历每一个位置的元件
             if(accessor instanceof ClientTile ct){
-                for(int x_asix = -1; x_asix< SIZE; x_asix++){
-                    for(int y_asix = -1;y_asix<HEIGHT;y_asix++){
-                        for(int z_asix = -1;z_asix<SIZE;z_asix++){
+                //遍历这里面的数据
+                for(int x_axis = beginPos.pos().x(); x_axis <= endPos.pos().x(); x_axis++){
+                    for(int y_axis = beginPos.pos().y(); y_axis <= endPos.pos().y(); y_axis++){
+                        for(int z_axis = beginPos.pos().z(); z_axis <= endPos.pos().z(); z_axis++){
                             for(ComponentSlot cs:ComponentSlot.VALUES){
                                 try {
-                                    var component = ct.getState(new Vec3i(x_asix, y_asix, z_asix), cs);
+                                    var component = ct.getState(new Vec3i(x_axis, y_axis, z_axis), cs);
                                     if(component != null){
+                                        //对占据多个格子的组件进行检测
+                                        if(component.getComponentType().toString().equals("torch_bottom")){
+                                            var component2 = ct.getState(new Vec3i(x_axis, y_axis+1, z_axis), cs);
+                                            if(component2 == null) return null;
+                                            if(!component2.getComponentType().toString().equals("torch_top")) return null;
+                                        }
+
+                                        if(component.getComponentType().toString().equals("torch_top")){
+                                            var component2 = ct.getState(new Vec3i(x_axis, y_axis-1, z_axis), cs);
+                                            if(component2 == null) return null;
+                                            if(!component2.getComponentType().toString().equals("torch_bottom")) return null;
+                                        }
+
                                         //放位置
-                                        sizeCache.add(new byte[]{(byte) x_asix,(byte) y_asix,(byte) z_asix});
+                                        result.addPos(new byte[]{(byte) x_axis,(byte) y_axis,(byte) z_axis});
 
                                         //放数据(统一都是64byte的)
-                                        componentCache.add(component);
+                                        result.addComponent(component);
                                     }
-                                }catch (Exception e){}
+                                }catch (Exception e){e.printStackTrace();}
                             }
                         }
                     }
                 }
-            }
 
-            //输出
-            try{
-                //输出的文件
-                File output = new File(FOLDER_NAME+"\\"+blueprintName+".blueprint");
-                FileOutputStream os = new FileOutputStream(output);
-
-
-                //对各字符串这个进行UTF_8编码
-                byte[] fileHead = FILE_HEADER.getBytes(StandardCharsets.UTF_8);//文件头
-                byte[] fileVersion = FILE_VERSION.getBytes(StandardCharsets.UTF_8);//文件版本
-                byte[] name = blueprintName.getBytes(StandardCharsets.UTF_8);//蓝图名
-                byte[] introduction = blueprintIntroduction.getBytes(StandardCharsets.UTF_8);//蓝图介绍
-                byte[] author = blueprintAuthor.getBytes(StandardCharsets.UTF_8);//蓝图作者
-
-
-                //文件头
-                os.write(fileHead);
-                os.flush();
-
-                //文件版本
-                os.write(twoBytesFormatting(fileVersion.length));
-                os.write(fileVersion);
-                os.flush();
-
-                //蓝图名字
-                os.write(twoBytesFormatting(name.length));
-                os.write(name);
-                os.flush();
-
-                //蓝图介绍
-                os.write(twoBytesFormatting(introduction.length));
-                os.write(introduction);
-                os.flush();
-
-                //蓝图作者
-                os.write(twoBytesFormatting(author.length));
-                os.write(author);
-                os.flush();
-
-                //存储元件位置的列表
-                byte[] poss = new byte[sizeCache.size()*3];
-                os.write(twoBytesFormatting(poss.length));
-
-                //4 bytes of posData_length , posData_length bytes of posData , 64*posData_length/3 bytes of componentData
-                //4 byte 用来放位置数据列表的长度(posData_length) , posData_length byte 长度的数据用来放位置数据 , 64*posData_length/3 byte 长度的数据用来放元件数据
-                int counter = 0;
-                for(byte[] bytes : sizeCache){
-                    for(byte Byte : bytes){
-                        //把位置存进这个数组
-                        poss[counter] = Byte;
-                        counter++;
-                    }
-                }
-                os.write(poss);
-                os.flush();
-
-                //写入元件位置
-                //创建一个FriendlyByteBuf
-                ByteBuf bf = Unpooled.buffer(64);
-                FriendlyByteBuf buffer = new FriendlyByteBuf(bf);
-                //装填每一个元件的参数
-                for(ComponentState cs:componentCache){
-                    cs.serialize(buffer);
-                    os.write(buffer.array());
-                    os.flush();
-                    buffer.clear();
-                }
-
-                //FileInputStream fis = new FileInputStream("SCM_blueprints\\name.blueprint");
-                //FileInputStream fis2 = new FileInputStream("SCM_blueprints\\nameaaaa.blueprint");
-                //byte[] result = fis.readAllBytes();
-                //byte[] result2 = fis2.readAllBytes();
-                //经过测试可以知道新生成得不同名字文件之间没有任何区别
-
-
-                //String result = new String(name,StandardCharsets.UTF_8);
-                //使用这种方式来获取字符串
-                //oos.writeObject(blueprint);
-                //oos.flush();
-                //oos.close();
-                //打印"保存成功"字样
-                //minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save"), true);
-
-            }catch (Exception e){
-                //minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save_failed"), true);
-                e.printStackTrace();
-            }
+                return result;
+            }else {return null;}
         }
-        return true;
+        return null;
     }
+
+    public CircuitBlock.Data getData(BlockGetter level, BlockPos pos){try{return this.data.at(level,pos,getBlockStateByPos(pos));}catch (Exception e){return null;}}
 
     public byte[] twoBytesFormatting(int data){
         if(data>65535 || data<0) return null;
