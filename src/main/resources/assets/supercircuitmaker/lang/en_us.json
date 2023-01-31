@@ -4,6 +4,8 @@
   "block.supercircuitmaker.circuit": "Circuit",
   "block.supercircuitmaker.inspector": "Inspector",
   "item.supercircuitmaker.screwdriver": "Screwdriver",
+  "item.supercircuitmaker.blueprint": "empty blueprint",
+  "item.supercircuitmaker.filled_blueprint": "filled blueprint",
   "item.supercircuitmaker.palette": "Palette and Brush",
   "item.supercircuitmaker.tiny_redstone": "Tiny Pile of Redstone Dust",
   "item.supercircuitmaker.tiny_rgb_redstone": "Tiny Pile of RGB Redstone Dust",
@@ -45,7 +47,15 @@
   "key.supercircuitmaker.open_palette": "Open Palette",
   "key.supercircuitmaker.component_placement_modifier": "Component Placement Modifier",
 
-  "msg.supercircuitmaker.inspector.learned": "Learned!",
+  "msg.supercircuitmaker.inspector.learned": "get it!",
   "msg.supercircuitmaker.inspector.mode_state": "Selected mode: Match block state",
-  "msg.supercircuitmaker.inspector.mode_block": "Selected mode: Match block type"
+  "msg.supercircuitmaker.inspector.mode_block": "Selected mode: Match block type",
+  "msg.supercircuitmaker.blueprint.save": "blueprint saved",
+  "msg.supercircuitmaker.blueprint.save_failed": "save failure",
+  "msg.supercircuitmaker.blueprint.save.pos1": "first position checked",
+  "msg.supercircuitmaker.blueprint.save.pos2": "second position checked",
+  "msg.supercircuitmaker.blueprint.save.cancelled": "save cancelled",
+  "msg.supercircuitmaker.blueprint.save.coincide": "pos2 shouldn't be the same as pos1 , select pos2 again",
+  "msg.supercircuitmaker.blueprint.save.dif_y_axis": "pos1 & pos2 must in the same xz plane , select pos2 again",
+  "msg.supercircuitmaker.blueprint.save.size_too_large":"size of a blueprint couldn't be larger than 5*5 , select pos2 again"
 }

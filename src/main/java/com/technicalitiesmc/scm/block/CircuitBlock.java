@@ -339,7 +339,7 @@ public class CircuitBlock extends TKBlock.WithEntity implements Multipart, Custo
         if(data>65535 || data<0) return null;
         return new byte[]{(byte)(data%256),(byte)(data-256*(data%256))};
     }
-    /*
+
     public ComponentSlotPos getHitPos(BlockState state, BlockGetter level, BlockPos pos, Player player){
         var shape = getShape(state, level, pos, CollisionContext.of(player));
         var start = player.getEyePosition(0);
@@ -350,7 +350,6 @@ public class CircuitBlock extends TKBlock.WithEntity implements Multipart, Custo
         }
         return null;
     }
-     */
 
     private VoxelShape getBaseShape(BlockState state) {
         return BOUNDS[state.getValue(DIRECTION).ordinal()];

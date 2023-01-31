@@ -23,6 +23,8 @@ public class CircuitHelper {
 
     public static final String FOLDER_NAME = "SCM_blueprints";
 
+    public static final int MAX_BLUEPRINT_SIZE = 5;
+
     public static ComponentSlotPos resolvePositionFromShapeIndex(int index) {
         var slot = Math.floorMod(index, SLOTS);
         index = Math.floorDiv(index, SLOTS);

@@ -2,6 +2,7 @@ package com.technicalitiesmc.scm.init;
 
 import com.technicalitiesmc.lib.block.TKBlockEntity;
 import com.technicalitiesmc.scm.SuperCircuitMaker;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;

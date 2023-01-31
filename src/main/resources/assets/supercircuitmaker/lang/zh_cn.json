@@ -50,6 +50,12 @@
   "msg.supercircuitmaker.inspector.learned": "学到了!",
   "msg.supercircuitmaker.inspector.mode_state": "模式: 匹配方块状态",
   "msg.supercircuitmaker.inspector.mode_block": "模式: 匹配方块类型",
-  "msg.supercircuitmaker.blueprint.save": "蓝图保存成功!",
-  "msg.supercircuitmaker.blueprint.save_failed": "蓝图保存失败"
+  "msg.supercircuitmaker.blueprint.save": "蓝图保存成功",
+  "msg.supercircuitmaker.blueprint.save_failed": "蓝图保存失败",
+  "msg.supercircuitmaker.blueprint.save.pos1": "第一顶点已确定",
+  "msg.supercircuitmaker.blueprint.save.pos2": "第二顶点已确定",
+  "msg.supercircuitmaker.blueprint.save.cancelled": "保存过程已取消",
+  "msg.supercircuitmaker.blueprint.save.coincide": "第二顶点不应与第一顶点重合，请重新选择第二顶点",
+  "msg.supercircuitmaker.blueprint.save.dif_y_axis": "第一第二顶点必须在同一个xz平面内，请重新选择第二顶点",
+  "msg.supercircuitmaker.blueprint.save.size_too_large":"一张蓝图的大小不能大于5*5，请重新选择第二顶点"
 }

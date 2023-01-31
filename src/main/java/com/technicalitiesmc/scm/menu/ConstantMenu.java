@@ -4,8 +4,10 @@ import com.technicalitiesmc.lib.menu.TKMenu;
 import com.technicalitiesmc.lib.util.value.Reference;
 import com.technicalitiesmc.lib.util.value.Value;
 import com.technicalitiesmc.scm.init.SCMMenus;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.Minecart;
 import net.minecraft.world.inventory.DataSlot;
 
 import java.util.function.Predicate;
