@@ -97,7 +97,7 @@ public class BlueprintSavingScreen extends TKMenuScreen<BlueprintSavingMenu> {
         addRenderableWidget(new PlainTextButton(offset(0),130,50,10,versionTag,b -> {},minecraft.font));
 
         //版本tag
-        var sizeTag = TEXT[6].copy().append(": "+String.format("%.2f",((double)fs.getSize(name,introduction,playerName))/1024)+" kb");
+        var sizeTag = TEXT[7].copy().append(": "+String.format("%.2f",((double)fs.getSize(name,introduction,playerName))/1024)+" kb");
         addRenderableWidget(new PlainTextButton(offset(0),150,50,10,sizeTag,b -> {},minecraft.font));
 
         //物品清单tag
