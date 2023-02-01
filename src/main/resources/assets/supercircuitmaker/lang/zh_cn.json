@@ -23,6 +23,12 @@
   "item.supercircuitmaker.platform": "支撑平台",
   "item.supercircuitmaker.redstone_stick": "径向红石线",
   "item.supercircuitmaker.rgb_redstone_stick": "径向总线",
+  "item.supercircuitmaker.redstone_wire": "小撮红石粉",
+  "item.supercircuitmaker.bundled_wire": "小撮荧光红石粉",
+  "item.supercircuitmaker.vertical_wire": "径向红石线",
+  "item.supercircuitmaker.vertical_bundled_wire": "径向总线",
+  "item.supercircuitmaker.lever": "拉杆",
+  "item.supercircuitmaker.torch_bottom": "红石火把",
 
   "container.supercircuitmaker.delay": "延时时长: ",
   "container.supercircuitmaker.pulsar": "振荡周期: ",
@@ -41,6 +47,16 @@
   "container.supercircuitmaker.constant.inc_1": "+1",
   "container.supercircuitmaker.constant.inc_20": "+20",
 
+  "container.supercircuitmaker.blueprint": "蓝图",
+  "container.supercircuitmaker.blueprint.save": "保存",
+  "container.supercircuitmaker.blueprint.cancelled": "取消",
+  "container.supercircuitmaker.blueprint.name_tag": "为掉落的蓝图命名",
+  "container.supercircuitmaker.blueprint.introduction": "介绍",
+  "container.supercircuitmaker.blueprint.author": "作者",
+  "container.supercircuitmaker.blueprint.version": "蓝图文件版本",
+  "container.supercircuitmaker.blueprint.item": "物品清单",
+  "container.supercircuitmaker.blueprint.size": "文件大小",
+
   "subtitles.supercircuitmaker.place": "BOOP",
 
   "key.supercircuitmaker": "红石微电子",
@@ -58,4 +74,5 @@
   "msg.supercircuitmaker.blueprint.save.coincide": "第二顶点不应与第一顶点重合，请重新选择第二顶点",
   "msg.supercircuitmaker.blueprint.save.dif_y_axis": "第一第二顶点必须在同一个xz平面内，请重新选择第二顶点",
   "msg.supercircuitmaker.blueprint.save.size_too_large":"一张蓝图的大小不能大于5*5，请重新选择第二顶点"
+
 }

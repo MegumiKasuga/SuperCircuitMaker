@@ -6,13 +6,12 @@ import com.technicalitiesmc.lib.circuit.component.ComponentState;
 import com.technicalitiesmc.lib.util.Utils;
 import com.technicalitiesmc.scm.SuperCircuitMaker;
 import com.technicalitiesmc.scm.block.CircuitBlock;
-import com.technicalitiesmc.scm.circuit.util.BlueprintDataPacket;
-import com.technicalitiesmc.scm.circuit.util.ComponentPos;
-import com.technicalitiesmc.scm.circuit.util.ComponentSlotPos;
-import com.technicalitiesmc.scm.circuit.util.ParticleDirector;
+import com.technicalitiesmc.scm.circuit.util.*;
+import com.technicalitiesmc.scm.client.screen.BlueprintSavingScreen;
 import com.technicalitiesmc.scm.client.screen.PaletteScreen;
 import com.technicalitiesmc.scm.init.SCMItems;
 import com.technicalitiesmc.scm.item.PaletteItem;
+import com.technicalitiesmc.scm.menu.BlueprintSavingMenu;
 import com.technicalitiesmc.scm.placement.ComponentPlacementHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -116,7 +115,7 @@ public class SCMClientEventHandler {
     }
 
     static ParticleDirector pdFirst = null;
-    static ParticleDirector pdSecond = null;
+    static ParticleDirector pbe = null;
 
 
     @SubscribeEvent
@@ -136,7 +135,7 @@ public class SCMClientEventHandler {
         }
 
         if(pdFirst == null) pdFirst = new ParticleDirector(minecraft);
-        if(pdSecond == null) pdSecond = new ParticleDirector(minecraft);
+        if(pbe == null) pbe = new ParticleDirector(minecraft);
 
         InteractionResult result;
         if (event.isUseItem()) {
@@ -149,9 +148,9 @@ public class SCMClientEventHandler {
                     firstPos = null;
                     firstHitPos = null;
                     if(pdFirst != null) pdFirst.stop();
-                    if(pdSecond != null) pdSecond.stop();
+                    if(pbe != null) pbe.stop();
                     pdFirst = null;
-                    pdSecond = null;
+                    pbe = null;
                     error();
                     step = 0;
                     return;
@@ -227,57 +226,14 @@ public class SCMClientEventHandler {
 
                     if(!itemTab.isEmpty() && !posTab.isEmpty()){
 
-                        String name = "testBlueprint";
-                        String introduction = "testIntroduction";
-                        String author = "Carole";
+                        BlueprintSavingScreen bss = new BlueprintSavingScreen(new BlueprintSavingMenu(minecraft.player.getId(),minecraft.player.getInventory()),minecraft.player.getInventory(),new TranslatableComponent("container."+SuperCircuitMaker.MODID+".blueprint"));
+
 
                         byte[] itemBytes = BlueprintDataPacket.getItemsSerialize(itemTab);//物品清单
                         byte[] posBytes = BlueprintDataPacket.getPosSerialize(posTab);//位置
-                        try{
-                            //生成文件和输出流
-                            File output = new File(FOLDER_NAME+"\\"+name+".blueprint");
-                            FileOutputStream os = new FileOutputStream(output);
-                            BufferedOutputStream bos = new BufferedOutputStream(os);
 
-                            //输出字节
-                            BlueprintDataPacket.writeFileHead(bos,name,introduction,author);//文件头
-                            bos.write(itemBytes);//物品
-                            bos.write(posBytes);//位置
-
-                            //创建一个FriendlyByteBuf
-                            ByteBuf bf = Unpooled.buffer(64);
-                            FriendlyByteBuf buffer = new FriendlyByteBuf(bf);
-
-                            //写入元件数据(每个64字节)
-                            for(BlueprintDataPacket bdp2:datas){
-                                for(ComponentState cs:bdp2.getComponentList()){
-                                    cs.serialize(buffer);
-                                    bos.write(buffer.accessByteBufWithCorrectSize());
-                                    buffer.clear();
-                                }
-                            }
-
-                            bos.flush();
-                            bos.close();
-
-                            minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save"), true);
-
-                            firstPos = null;
-                            firstHitPos = null;
-                            error();
-                            step = 0;
-
-                            pdFirst.stop();
-                            pdSecond.stop();
-                            pdFirst = null;
-                            pdSecond = null;
-
-                            System.gc();
-                            return;
-
-                        }catch (FileNotFoundException e){e.printStackTrace();} catch (IOException e){e.printStackTrace();}
-
-                        minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save_failed"), true);
+                        bss.loadFileSaver(new FileSaver(itemBytes,posBytes,datas), minecraft.player,itemTab);
+                        minecraft.setScreen(bss);
 
                         firstPos = null;
                         firstHitPos = null;
@@ -285,12 +241,11 @@ public class SCMClientEventHandler {
                         step = 0;
 
                         pdFirst.stop();
-                        pdSecond.stop();
+                        pbe.stop();
                         pdFirst = null;
-                        pdSecond = null;
+                        pbe = null;
 
                         System.gc();
-
                         return;
                     }
                 }
@@ -341,8 +296,8 @@ public class SCMClientEventHandler {
                                 return;
                             }
                             //成功选取
-                            pdSecond.loadLocation(secondPos,secondHitPos);
-                            pdSecond.on();
+                            pbe.loadLocation(secondPos,secondHitPos);
+                            pbe.on();
 
                             minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.pos2"), true);
                             step++;
@@ -356,9 +311,9 @@ public class SCMClientEventHandler {
             if(step != 0) step = 0;
 
             if(pdFirst != null)pdFirst.stop();
-            if(pdSecond != null)pdSecond.stop();
+            if(pbe != null)pbe.stop();
             pdFirst = null;
-            pdSecond = null;
+            pbe = null;
 
             if (partial) {
                 result = InteractionResult.CONSUME_PARTIAL;

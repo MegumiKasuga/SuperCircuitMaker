@@ -42,6 +42,9 @@ public class BlueprintDataPacket {
         }
     };
 
+    public static final byte[] fileHead = FILE_HEADER.getBytes(StandardCharsets.UTF_8);//文件头
+    public static final byte[] fileVersion = FILE_VERSION.getBytes(StandardCharsets.UTF_8);//文件版本
+
     HashMap<String,Integer> items = new HashMap<String,Integer>();
 
     public BlueprintDataPacket(){}
@@ -177,8 +180,6 @@ public class BlueprintDataPacket {
 
     public static void writeFileHead(BufferedOutputStream bos,String blueprintName,String blueprintIntroduction,String blueprintAuthor) throws IOException {
         //对各字符串这个进行UTF_8编码
-        byte[] fileHead = FILE_HEADER.getBytes(StandardCharsets.UTF_8);//文件头
-        byte[] fileVersion = FILE_VERSION.getBytes(StandardCharsets.UTF_8);//文件版本
         byte[] name = blueprintName.getBytes(StandardCharsets.UTF_8);//蓝图名
         byte[] introduction = blueprintIntroduction.getBytes(StandardCharsets.UTF_8);//蓝图介绍
         byte[] author = blueprintAuthor.getBytes(StandardCharsets.UTF_8);//蓝图作者

@@ -23,6 +23,12 @@
   "item.supercircuitmaker.platform": "Support Platform",
   "item.supercircuitmaker.redstone_stick": "Redstone-Coated Stick",
   "item.supercircuitmaker.rgb_redstone_stick": "RGB Redstone-Coated Stick",
+  "item.supercircuitmaker.redstone_wire": "Tiny Pile of Redstone Dust",
+  "item.supercircuitmaker.bundled_wire": "Tiny Pile of RGB Redstone Dust",
+  "item.supercircuitmaker.vertical_wire": "Redstone-Coated Stick",
+  "item.supercircuitmaker.vertical_bundled_wire": "RGB Redstone-Coated Stick",
+  "item.supercircuitmaker.lever": "lever",
+  "item.supercircuitmaker.torch_bottom": "redstone torch",
 
   "container.supercircuitmaker.delay": "Quartz Resonator: ",
   "container.supercircuitmaker.pulsar": "Ender Pulsar: ",
@@ -40,6 +46,16 @@
   "container.supercircuitmaker.constant.dec_1": "-1",
   "container.supercircuitmaker.constant.inc_1": "+1",
   "container.supercircuitmaker.constant.inc_20": "+20",
+
+  "container.supercircuitmaker.blueprint":"blueprint",
+  "container.supercircuitmaker.blueprint.save": "save",
+  "container.supercircuitmaker.blueprint.cancelled": "cancel",
+  "container.supercircuitmaker.blueprint.name_tag": "name",
+  "container.supercircuitmaker.blueprint.introduction": "introduction",
+  "container.supercircuitmaker.blueprint.author": "author",
+  "container.supercircuitmaker.blueprint.version": "blueprint version",
+  "container.supercircuitmaker.blueprint.item": "item list",
+  "container.supercircuitmaker.blueprint.size": "file size",
 
   "subtitles.supercircuitmaker.place": "BOOP",
 
