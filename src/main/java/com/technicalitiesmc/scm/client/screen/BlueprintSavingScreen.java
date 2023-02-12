@@ -3,23 +3,25 @@ package com.technicalitiesmc.scm.client.screen;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.technicalitiesmc.lib.client.screen.TKMenuScreen;
 import com.technicalitiesmc.scm.SuperCircuitMaker;
-import com.technicalitiesmc.scm.circuit.util.BlueprintDataPacket;
 import com.technicalitiesmc.scm.circuit.util.FileSaver;
 import com.technicalitiesmc.scm.menu.BlueprintSavingMenu;
-import com.technicalitiesmc.scm.menu.ConstantMenu;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.*;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.BindingCurseEnchantment;
+import net.minecraft.world.item.enchantment.ThornsEnchantment;
+import net.minecraft.world.item.enchantment.UntouchingEnchantment;
 
 import java.util.HashMap;
 import java.util.List;
 
 import static com.technicalitiesmc.scm.circuit.CircuitHelper.FILE_VERSION;
+import static com.technicalitiesmc.scm.init.SCMItems.FILLEDBLUEPRINT;
 
 public class BlueprintSavingScreen extends TKMenuScreen<BlueprintSavingMenu> {
 
@@ -52,6 +54,10 @@ public class BlueprintSavingScreen extends TKMenuScreen<BlueprintSavingMenu> {
         this.fs = fs;
         playerName = player.getName().getContents();
         this.items = items;
+    }
+
+    public boolean isPauseScreen(){
+        return true;
     }
 
     private Button[] buttons = new Button[2];
@@ -117,21 +123,41 @@ public class BlueprintSavingScreen extends TKMenuScreen<BlueprintSavingMenu> {
         for (int i = 0; i < 2; i++) {
             var j = i;
             buttons[i] = addRenderableWidget(new Button(offset(0), 170+i*30, editBoxWidth, editBoxHeight, TEXT[i], b -> {
-                if(b.equals(buttons[0])) {name = nameBox.getValue();
+                if(b.equals(buttons[0])) {
+                    name = nameBox.getValue();
                     introduction = introBox.getValue();
                     if(fs.save(name,introduction,playerName)){
+
+                        minecraft.player.swing(minecraft.player.getUsedItemHand());
+
+                        ItemStack is = minecraft.player.getMainHandItem();
+                        CompoundTag cx = new CompoundTag();
+                        cx.putString("file",name);
+                        is.setCount(0);
+
+                        ItemStack is2 = new ItemStack(FILLEDBLUEPRINT.get());
+                        is2.setTag(cx);
+                        is2.setCount(1);
+                        is2.setHoverName(new TranslatableComponent("item." + SuperCircuitMaker.MODID + ".filled_blueprint").copy().append(":" + name));
+                        minecraft.player.getInventory().add(is2);//给玩家手里添加物品的方法
+
                         minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save"), true);
                     }else {
                         minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.failed"), true);
                     }
                     onClose();}
-                if(b.equals(buttons[1])) onClose();
+                if(b.equals(buttons[1])) {
+                    onClose();
+                    minecraft.player.displayClientMessage(new TranslatableComponent("msg." + SuperCircuitMaker.MODID + ".blueprint.save.cancelled"), true);
+                }
             }));
         }
     }
 
     public void onClose(){
         super.onClose();
+        fs = null;
+        System.gc();
     }
 
     @Override

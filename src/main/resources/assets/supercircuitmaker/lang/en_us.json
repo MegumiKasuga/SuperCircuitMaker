@@ -5,7 +5,7 @@
   "block.supercircuitmaker.inspector": "Inspector",
   "item.supercircuitmaker.screwdriver": "Screwdriver",
   "item.supercircuitmaker.blueprint": "empty blueprint",
-  "item.supercircuitmaker.filled_blueprint": "filled blueprint",
+  "item.supercircuitmaker.filled_blueprint": "blueprint",
   "item.supercircuitmaker.palette": "Palette and Brush",
   "item.supercircuitmaker.tiny_redstone": "Tiny Pile of Redstone Dust",
   "item.supercircuitmaker.tiny_rgb_redstone": "Tiny Pile of RGB Redstone Dust",
